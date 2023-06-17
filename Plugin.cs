@@ -1,4 +1,5 @@
-﻿using BepInEx;
+﻿using System;
+using BepInEx;
 using HarmonyLib;
 
 namespace ImmersiveTime
@@ -18,12 +19,16 @@ namespace ImmersiveTime
         private string night        = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Night.ToString());        // >= 22 && < 5
         private string noon         = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Noon.ToString());
 
+        private string timeSlot;
+
         internal void Awake()
         {
             Instance = this;
 
             var harmony = new Harmony(GUID);
             harmony.PatchAll();
+
+            timeSlot = Instance.night;
 
             //Instance.Logger.LogDebug("Awake");
         }
@@ -33,6 +38,19 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
+        [HarmonyPatch(typeof(MapDisplay), "Show", new Type[] { })]
+        public class MapDisplay_Show
+        {
+            [HarmonyPostfix]
+            public static void Postfix(MapDisplay __instance)
+            {
+                if (EnvironmentConditions.Instance.IsMorning)
+                {
+                    Instance.timeSlot = Instance.morning;
+                }
+
+            }
+        }
 
         [HarmonyPatch(typeof(MapDisplay), "Update")]
         public class MapDisplay_Update
@@ -40,7 +58,7 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(MapDisplay __instance)
             {
-                __instance.m_timeOfDay.text = Instance.morning;
+                __instance.m_timeOfDay.text = Instance.timeSlot;
 
             }
         }
