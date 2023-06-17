@@ -1,5 +1,5 @@
-﻿using System;
-using BepInEx;
+﻿using BepInEx;
+using HarmonyLib;
 
 namespace ImmersiveTime
 {
@@ -16,7 +16,26 @@ namespace ImmersiveTime
         {
             Instance = this;
 
-            Instance.Logger.LogDebug("Awake");
+            var harmony = new Harmony(GUID);
+            harmony.PatchAll();
+
+            //Instance.Logger.LogDebug("Awake");
+        }
+
+        internal void Update()
+        {
+            //Instance.Logger.LogDebug("Update");
+        }
+
+        [HarmonyPatch(typeof(MapDisplay), "Update")]
+        public class MapDisplay_Update
+        {
+            [HarmonyPostfix]
+            public static void Postfix(MapDisplay __instance)
+            {
+                __instance.m_timeOfDay.text = "Test";
+
+            }
         }
     }
 }
