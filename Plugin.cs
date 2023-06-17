@@ -12,6 +12,12 @@ namespace ImmersiveTime
 
         public static ImmersiveTime Instance;
 
+        private string morning      = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Morning.ToString());      // >= 5 && < 12
+        private string afterNoon    = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.AfterNoon.ToString());    // >= 13 && < 18
+        private string evening      = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Evening.ToString());      // >= 18 && < 22
+        private string night        = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Night.ToString());        // >= 22 && < 5
+        private string noon         = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Noon.ToString());
+
         internal void Awake()
         {
             Instance = this;
@@ -27,13 +33,14 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
+
         [HarmonyPatch(typeof(MapDisplay), "Update")]
         public class MapDisplay_Update
         {
             [HarmonyPostfix]
             public static void Postfix(MapDisplay __instance)
             {
-                __instance.m_timeOfDay.text = "Test";
+                __instance.m_timeOfDay.text = Instance.morning;
 
             }
         }
