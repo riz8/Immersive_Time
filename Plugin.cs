@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using BepInEx;
 using HarmonyLib;
+using UnityEngine;
+using static MapMagic.ObjectPool;
 
 namespace ImmersiveTime
 {
@@ -9,7 +11,7 @@ namespace ImmersiveTime
     {
         public const string GUID = "rob.one.immersive_time";
         public const string NAME = "ImmersiveTime";
-        public const string VERSION = "0.1";
+        public const string VERSION = "0.2";
 
         public static ImmersiveTime Instance;
 
@@ -23,28 +25,42 @@ namespace ImmersiveTime
             public static readonly string NOON      = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Noon.ToString());         // See 1
         }
 
-        private string currentTimeText;
+        private string  currentTimeText         = "[PLACEHOLDER]";
+        private bool    currentlyIndoor         = false;
+        private double  gameTimeWhenEnterScene  = .0;
         private readonly struct TimeSlot
         {
-            public TimeSlot(string outputText_, Func<bool> predicate_)
+            public TimeSlot(string outputText_, Func<double, bool> predicate_)
             {
                 outputText = outputText_;
                 predicate = predicate_;
             }
 
-            public bool MatchesCurrentTime() { return predicate(); }
+            public bool MatchesCurrentTime()
+            {
+                double deltaTime = calculteTimeInScene();
+                return predicate(deltaTime);
+            }
             public string OutputText() { return outputText; }
 
-            private readonly string     outputText;
-            private readonly Func<bool> predicate;
-        }
+            private readonly string             outputText;
+            private readonly Func<double, bool> predicate;
 
+            public double calculteTimeInScene()
+            {
+                return EnvironmentConditions.GameTime - Instance.gameTimeWhenEnterScene;
+            }
+        }
         readonly TimeSlot[] timeSlots = {
-            new TimeSlot(TranslationLabels.MORNING,     () => { return EnvironmentConditions.Instance.IsMorning; }),
-            new TimeSlot(TranslationLabels.AFTERNOON,   () => { return EnvironmentConditions.Instance.IsAfterNoon; }),
-            new TimeSlot(TranslationLabels.EVENING,     () => { return EnvironmentConditions.Instance.IsEvening; }),
-            new TimeSlot(TranslationLabels.NIGHT,       () => { return EnvironmentConditions.Instance.IsNight; }),
-            new TimeSlot(TranslationLabels.NOON,        () => { return EnvironmentConditions.Instance.IsNoon; }) // See 1
+            new TimeSlot("Less than 2 hours since enter",   (double timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 2; } ),
+            new TimeSlot("Less than 4 hours since enter",   (double timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 4; } ),
+            new TimeSlot("Less than 6 hours since enter",   (double timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 6; } ),
+            new TimeSlot("You have lost track of time",     (double _) => { return Instance.currentlyIndoor; } ),
+            new TimeSlot(TranslationLabels.MORNING,         (double _) => { return EnvironmentConditions.Instance.IsMorning; }),
+            new TimeSlot(TranslationLabels.AFTERNOON,       (double _) => { return EnvironmentConditions.Instance.IsAfterNoon; }),
+            new TimeSlot(TranslationLabels.EVENING,         (double _) => { return EnvironmentConditions.Instance.IsEvening; }),
+            new TimeSlot(TranslationLabels.NIGHT,           (double _) => { return EnvironmentConditions.Instance.IsNight; }),
+            new TimeSlot(TranslationLabels.NOON,            (double _) => { return EnvironmentConditions.Instance.IsNoon; }) // See 1
         };
 
         internal void Awake()
@@ -62,15 +78,37 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
+        [HarmonyPatch(typeof(SceneInteractionManager), "DoneLoadingLevel")]
+        public class SceneInteractionManager_DoneLoadingLevel
+        {
+            [HarmonyPostfix]
+            public static void Postfix(SceneInteractionManager __instance)
+            {
+                MapDisplay.Instance.FetchMap(); // We need to update the map for m_currentAreaHasMap to be set
+                bool enteringIndoor = !MapDisplay.Instance.m_currentAreaHasMap;
+
+                if (!Instance.currentlyIndoor && enteringIndoor) // Moving inside
+                {
+                    Instance.gameTimeWhenEnterScene = EnvironmentConditions.GameTime;
+                    Instance.Logger.LogDebug("Entering inside. New timer " + Instance.gameTimeWhenEnterScene);
+                }
+
+                Instance.currentlyIndoor = enteringIndoor;
+            }
+        }
+
         [HarmonyPatch(typeof(MapDisplay), "Show", new Type[] { })]
         public class MapDisplay_Show
         {
             [HarmonyPostfix]
-            public static void Postfix(MapDisplay _)
+            public static void Postfix(MapDisplay __instance)
             {
-                Instance.currentTimeText = Array.Find(
-                    Instance.timeSlots, timeSlot => timeSlot.MatchesCurrentTime())
-                        .OutputText();
+
+                TimeSlot slot = Array.Find(Instance.timeSlots, timeSlot => timeSlot.MatchesCurrentTime());
+
+                Instance.currentTimeText = slot.OutputText();
+
+                Instance.Logger.LogDebug("Time in instance " + slot.calculteTimeInScene());
             }
         }
 
