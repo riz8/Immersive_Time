@@ -2,7 +2,8 @@ using System;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
-using static MapMagic.ObjectPool;
+using UnityEngine.UI;
+
 
 namespace ImmersiveTime
 {
@@ -78,6 +79,35 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
+        private static Sprite CreateSpriteFromFile(string filePath)
+        {
+            if (!System.IO.File.Exists(filePath))
+            {
+                return null;
+            }
+
+            byte[] byteData = System.IO.File.ReadAllBytes(filePath);
+            Texture2D texture = new(0, 0, TextureFormat.RGBA32, false);
+            texture.LoadImage(byteData, true);
+            Rect textureRect = new(0, 0, texture.width, texture.height);
+            Sprite newSprite = Sprite.Create(texture, textureRect, Vector2.zero, 1, 0, SpriteMeshType.FullRect);
+            return newSprite;
+        }
+
+        [HarmonyPatch(typeof(RestingMenu), "StartInit")]
+        public class RestingMenu_StartInit
+        {
+            [HarmonyPostfix]
+            public static void Postfix(RestingMenu __instance)
+            {
+                var img = CreateSpriteFromFile("D:/rest_image_orig.png");
+                var tile1 = __instance.transform.FindInAllChildren("Tile1").GetComponent<Image>();
+                var tile2 = __instance.transform.FindInAllChildren("Tile2").GetComponent<Image>();
+                tile1.sprite = img;
+                tile2.sprite = img;
+            }
+        }
+
         [HarmonyPatch(typeof(SceneInteractionManager), "DoneLoadingLevel")]
         public class SceneInteractionManager_DoneLoadingLevel
         {
@@ -109,6 +139,8 @@ namespace ImmersiveTime
                 Instance.currentTimeText = slot.OutputText();
 
                 Instance.Logger.LogDebug("Time in instance " + slot.calculteTimeInScene());
+
+
             }
         }
 
