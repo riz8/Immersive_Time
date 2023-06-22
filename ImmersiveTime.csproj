@@ -56,6 +56,10 @@
       <HintPath>packages\Outward.GameLibs.2022.5.18-r.0\lib\net472\Photon3Unity3D.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="SideLoader, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Outward.SideLoader.3.7.14\lib\net472\SideLoader.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

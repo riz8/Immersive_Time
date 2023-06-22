@@ -4,7 +4,6 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 
-
 namespace ImmersiveTime
 {
     [BepInPlugin(GUID, NAME, VERSION)]
@@ -12,7 +11,7 @@ namespace ImmersiveTime
     {
         public const string GUID = "rob.one.immersive_time";
         public const string NAME = "ImmersiveTime";
-        public const string VERSION = "0.2";
+        public const string VERSION = "0.3";
 
         public static ImmersiveTime Instance;
 
@@ -79,6 +78,24 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
+
+        public class BerrySaveExtension : SideLoader.SaveData.PlayerSaveExtension
+        {
+            public double   gameTimeWhenEnterScene;
+            public bool     currentlyIndoor;
+            public override void Save(Character character, bool isWorldHost)
+            {
+                gameTimeWhenEnterScene  = Instance.gameTimeWhenEnterScene;
+                currentlyIndoor         = Instance.currentlyIndoor;
+            }
+
+            public override void ApplyLoadedSave(Character character, bool isWorldHost)
+            {
+                Instance.gameTimeWhenEnterScene = gameTimeWhenEnterScene;
+                Instance.currentlyIndoor = currentlyIndoor;
+            }
+        }
+
         private static Sprite CreateSpriteFromFile(string filePath)
         {
             if (!System.IO.File.Exists(filePath))
@@ -90,8 +107,7 @@ namespace ImmersiveTime
             Texture2D texture = new(0, 0, TextureFormat.RGBA32, false);
             texture.LoadImage(byteData, true);
             Rect textureRect = new(0, 0, texture.width, texture.height);
-            Sprite newSprite = Sprite.Create(texture, textureRect, Vector2.zero, 1, 0, SpriteMeshType.FullRect);
-            return newSprite;
+            return Sprite.Create(texture, textureRect, Vector2.zero, 1, 0, SpriteMeshType.FullRect);
         }
 
         [HarmonyPatch(typeof(RestingMenu), "StartInit")]
