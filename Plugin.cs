@@ -27,40 +27,35 @@ namespace ImmersiveTime
 
         private string  currentTimeText         = "[PLACEHOLDER]";
         private bool    currentlyIndoor         = false;
-        private double  gameTimeWhenEnterScene  = .0;
+        private float   gameTimeWhenEnterScene  = 0f;
         private readonly struct TimeSlot
         {
-            public TimeSlot(string outputText_, Func<double, bool> predicate_)
+            public TimeSlot(string outputText_, Func<float, bool> predicate_)
             {
-                outputText = outputText_;
-                predicate = predicate_;
+                outputText  = outputText_;
+                predicate   = predicate_;
             }
 
             public bool MatchesCurrentTime()
             {
-                double deltaTime = calculteTimeInScene();
+                float deltaTime = EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene;
                 return predicate(deltaTime);
             }
             public string OutputText() { return outputText; }
 
             private readonly string             outputText;
-            private readonly Func<double, bool> predicate;
-
-            public double calculteTimeInScene()
-            {
-                return EnvironmentConditions.GameTime - Instance.gameTimeWhenEnterScene;
-            }
+            private readonly Func<float, bool>  predicate;
         }
         readonly TimeSlot[] timeSlots = {
-            new TimeSlot("Less than 2 hours since enter",   (double timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 2; } ),
-            new TimeSlot("Less than 4 hours since enter",   (double timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 4; } ),
-            new TimeSlot("Less than 6 hours since enter",   (double timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 6; } ),
-            new TimeSlot("You have lost track of time",     (double _) => { return Instance.currentlyIndoor; } ),
-            new TimeSlot(TranslationLabels.MORNING,         (double _) => { return EnvironmentConditions.Instance.IsMorning; }),
-            new TimeSlot(TranslationLabels.AFTERNOON,       (double _) => { return EnvironmentConditions.Instance.IsAfterNoon; }),
-            new TimeSlot(TranslationLabels.EVENING,         (double _) => { return EnvironmentConditions.Instance.IsEvening; }),
-            new TimeSlot(TranslationLabels.NIGHT,           (double _) => { return EnvironmentConditions.Instance.IsNight; }),
-            new TimeSlot(TranslationLabels.NOON,            (double _) => { return EnvironmentConditions.Instance.IsNoon; }) // See 1
+            new TimeSlot("Less than 2 hours since enter",   (float timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 2; } ),
+            new TimeSlot("Less than 4 hours since enter",   (float timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 4; } ),
+            new TimeSlot("Less than 6 hours since enter",   (float timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 6; } ),
+            new TimeSlot("You have lost track of time",     (float _) => { return Instance.currentlyIndoor; } ),
+            new TimeSlot(TranslationLabels.MORNING,         (float _) => { return EnvironmentConditions.Instance.IsMorning; }),
+            new TimeSlot(TranslationLabels.AFTERNOON,       (float _) => { return EnvironmentConditions.Instance.IsAfterNoon; }),
+            new TimeSlot(TranslationLabels.EVENING,         (float _) => { return EnvironmentConditions.Instance.IsEvening; }),
+            new TimeSlot(TranslationLabels.NIGHT,           (float _) => { return EnvironmentConditions.Instance.IsNight; }),
+            new TimeSlot(TranslationLabels.NOON,            (float _) => { return EnvironmentConditions.Instance.IsNoon; }) // See 1
         };
 
         internal void Awake()
@@ -79,9 +74,9 @@ namespace ImmersiveTime
         }
 
 
-        public class BerrySaveExtension : SideLoader.SaveData.PlayerSaveExtension
+        public class CaveEntryData : SideLoader.SaveData.PlayerSaveExtension
         {
-            public double   gameTimeWhenEnterScene;
+            public float    gameTimeWhenEnterScene;
             public bool     currentlyIndoor;
             public override void Save(Character character, bool isWorldHost)
             {
@@ -135,7 +130,7 @@ namespace ImmersiveTime
 
                 if (!Instance.currentlyIndoor && enteringIndoor) // Moving inside
                 {
-                    Instance.gameTimeWhenEnterScene = EnvironmentConditions.GameTime;
+                    Instance.gameTimeWhenEnterScene = EnvironmentConditions.GameTimeF;
                     Instance.Logger.LogDebug("Entering inside. New timer " + Instance.gameTimeWhenEnterScene);
                 }
 
@@ -149,14 +144,8 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(MapDisplay __instance)
             {
-
                 TimeSlot slot = Array.Find(Instance.timeSlots, timeSlot => timeSlot.MatchesCurrentTime());
-
                 Instance.currentTimeText = slot.OutputText();
-
-                Instance.Logger.LogDebug("Time in instance " + slot.calculteTimeInScene());
-
-
             }
         }
 
