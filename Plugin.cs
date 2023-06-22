@@ -159,6 +159,23 @@ namespace ImmersiveTime
 
             }
         }
+
+        [HarmonyPatch(typeof(QuestEntryDisplay), "SetDetail")]
+        public class QuestEntryDisplay_SetDetail
+        {
+            [HarmonyPostfix]
+            public static void Postfix(QuestEntryDisplay __instance, QuestLogEntry _logEntry)
+            {
+                if (__instance.m_lblLogDate)
+                {
+                    float time = _logEntry.LogTime;
+                    if (time != 0f)
+                    {
+                        __instance.m_lblLogDate.text = "[TEMP]";
+                    }
+                }
+            }
+        }
     }
 }
 
