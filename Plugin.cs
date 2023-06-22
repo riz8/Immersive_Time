@@ -84,11 +84,11 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
-        private bool IsMorning(float hour) { return hour >= 5f && hour < 12f; }
-        private bool IsNoon(float hour) { return hour >= 12f && hour < 13f; }
-        private bool IsAfterNoon(float hour) { return hour >= 13f && hour < 18f; }
-        private bool IsEvening(float hour){ return hour >= 18f && hour < 22f; }
-        private bool IsNight(float hour) { return hour >= 22f || hour < 5f; }
+        private bool IsMorning(float hour)      { return hour >= 5f && hour < 12f; }
+        private bool IsNoon(float hour)         { return hour >= 12f && hour < 13f; }
+        private bool IsAfterNoon(float hour)    { return hour >= 13f && hour < 18f; }
+        private bool IsEvening(float hour)      { return hour >= 18f && hour < 22f; }
+        private bool IsNight(float hour)        { return hour >= 22f || hour < 5f; }
 
         public class CaveEntryData : SideLoader.SaveData.PlayerSaveExtension
         {
@@ -187,13 +187,30 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(QuestEntryDisplay __instance, QuestLogEntry _logEntry)
             {
+                __instance.m_currentLogEntry = _logEntry;
+                if (__instance.m_lblText)
+                {
+                    __instance.m_lblText.text = "- " + _logEntry.Text;
+                }
                 if (__instance.m_lblLogDate)
                 {
                     float time = _logEntry.LogTime;
                     if (time != 0f)
                     {
-                        __instance.m_lblLogDate.text = "[TEMP]";
+                        int days_past = Mathf.FloorToInt(time / 24f) + 1;
+                        string text = string.Format(
+
+                            "{0} {1}\n" +   // Day 1
+                            "{2}",          // Morning
+
+                            LocalizationManager.Instance.GetLoc("General_Day"), (days_past).ToString(),
+                            "Morning"
+                        );
+
+                        __instance.m_lblLogDate.text = text;
+                        return;
                     }
+                    __instance.m_lblLogDate.text = string.Empty;
                 }
             }
         }
