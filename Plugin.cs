@@ -14,7 +14,7 @@ namespace ImmersiveTime
     {
         public const string GUID = "rob.one.immersive_time";
         public const string NAME = "ImmersiveTime";
-        public const string VERSION = "0.3";
+        public const string VERSION = "0.8";
 
         public static ImmersiveTime Instance;
 
@@ -206,14 +206,15 @@ namespace ImmersiveTime
                     float time = _logEntry.LogTime;
                     if (time != 0f)
                     {
-                        int days_past = Mathf.FloorToInt(time / 24f) + 1;
+                        int days_past = Mathf.FloorToInt(time / 24f);
+                        int hour = Mathf.FloorToInt(time - (days_past * 24));
                         string text = string.Format(
 
                             "{0} {1}\n" +   // Day 1
                             "{2}",          // Morning
 
-                            LocalizationManager.Instance.GetLoc("General_Day"), (days_past).ToString(),
-                            "Morning"
+                            LocalizationManager.Instance.GetLoc("General_Day"), (days_past+1).ToString(),
+                            OutdoorTime[hour]
                         );
 
                         __instance.m_lblLogDate.text = text;
