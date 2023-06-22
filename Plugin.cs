@@ -15,20 +15,21 @@ namespace ImmersiveTime
 
         public static ImmersiveTime Instance;
 
-        
+
         private readonly struct TranslationLabels
         {
-            public static readonly string MORNING   = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Morning.ToString());      // >= 5 && < 12
-            public static readonly string AFTERNOON = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.AfterNoon.ToString());    // >= 13 && < 18
-            public static readonly string EVENING   = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Evening.ToString());      // >= 18 && < 22
-            public static readonly string NIGHT     = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Night.ToString());        // >= 22 && < 5
-            public static readonly string NOON      = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Noon.ToString());         // See 1
+            public static readonly string MORNING = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Morning.ToString());
+            public static readonly string NOON = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Noon.ToString());
+            public static readonly string AFTERNOON = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.AfterNoon.ToString());
+            public static readonly string EVENING = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Evening.ToString());
+            public static readonly string NIGHT = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Night.ToString());
         }
 
-        private string  currentTimeText         = "[PLACEHOLDER]";
-        private bool    currentlyIndoor         = false;
-        private float   gameTimeWhenEnterScene  = 0f;
-        private readonly struct TimeSlot
+        private string currentTimeText          = "[PLACEHOLDER]";
+        private bool currentlyIndoor            = false;
+        private float gameTimeWhenEnterScene    = 0f;
+
+        private class TimeSlot
         {
             public TimeSlot(string outputText_, Func<float, bool> predicate_)
             {
@@ -36,26 +37,36 @@ namespace ImmersiveTime
                 predicate   = predicate_;
             }
 
-            public bool MatchesCurrentTime()
+            public bool MatchesTimeInCave()
             {
                 float deltaTime = EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene;
                 return predicate(deltaTime);
             }
+
+            public bool MatchesCurrentGameHour()
+            {
+                float game_hour = TOD_Sky.Instance.Cycle.Hour;
+                return predicate(game_hour);
+            }
+
             public string OutputText() { return outputText; }
 
-            private readonly string             outputText;
-            private readonly Func<float, bool>  predicate;
+            private readonly string outputText;
+            protected readonly Func<float, bool> predicate;
         }
-        readonly TimeSlot[] timeSlots = {
+
+        readonly TimeSlot[] timeSlotsCave = {
             new TimeSlot("Less than 2 hours since enter",   (float timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 2; } ),
             new TimeSlot("Less than 4 hours since enter",   (float timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 4; } ),
             new TimeSlot("Less than 6 hours since enter",   (float timeSinceEnterIndoor) => { return Instance.currentlyIndoor && timeSinceEnterIndoor < 6; } ),
             new TimeSlot("You have lost track of time",     (float _) => { return Instance.currentlyIndoor; } ),
-            new TimeSlot(TranslationLabels.MORNING,         (float _) => { return EnvironmentConditions.Instance.IsMorning; }),
-            new TimeSlot(TranslationLabels.AFTERNOON,       (float _) => { return EnvironmentConditions.Instance.IsAfterNoon; }),
-            new TimeSlot(TranslationLabels.EVENING,         (float _) => { return EnvironmentConditions.Instance.IsEvening; }),
-            new TimeSlot(TranslationLabels.NIGHT,           (float _) => { return EnvironmentConditions.Instance.IsNight; }),
-            new TimeSlot(TranslationLabels.NOON,            (float _) => { return EnvironmentConditions.Instance.IsNoon; }) // See 1
+        };
+        readonly TimeSlot[] timeSlotsOutdoor = {
+            new TimeSlot(TranslationLabels.MORNING,         (float gameHour) => { return Instance.IsMorning(gameHour); }),
+            new TimeSlot(TranslationLabels.NOON,            (float gameHour) => { return Instance.IsNoon(gameHour); }),
+            new TimeSlot(TranslationLabels.AFTERNOON,       (float gameHour) => { return Instance.IsAfterNoon(gameHour); }),
+            new TimeSlot(TranslationLabels.EVENING,         (float gameHour) => { return Instance.IsEvening(gameHour); }),
+            new TimeSlot(TranslationLabels.NIGHT,           (float gameHour) => { return Instance.IsNight(gameHour); })
         };
 
         internal void Awake()
@@ -73,6 +84,11 @@ namespace ImmersiveTime
             //Instance.Logger.LogDebug("Update");
         }
 
+        private bool IsMorning(float hour) { return hour >= 5f && hour < 12f; }
+        private bool IsNoon(float hour) { return hour >= 12f && hour < 13f; }
+        private bool IsAfterNoon(float hour) { return hour >= 13f && hour < 18f; }
+        private bool IsEvening(float hour){ return hour >= 18f && hour < 22f; }
+        private bool IsNight(float hour) { return hour >= 22f || hour < 5f; }
 
         public class CaveEntryData : SideLoader.SaveData.PlayerSaveExtension
         {
@@ -144,7 +160,12 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(MapDisplay __instance)
             {
-                TimeSlot slot = Array.Find(Instance.timeSlots, timeSlot => timeSlot.MatchesCurrentTime());
+                TimeSlot slot = Array.Find(Instance.timeSlotsCave, timeSlot => timeSlot.MatchesTimeInCave());
+                if (slot is null)
+                {
+                    slot = Array.Find(Instance.timeSlotsOutdoor, timeSlot => timeSlot.MatchesCurrentGameHour());
+                }
+
                 Instance.currentTimeText = slot.OutputText();
             }
         }
@@ -178,7 +199,3 @@ namespace ImmersiveTime
         }
     }
 }
-
-// 1.   The source code has a bug using || instead of &&
-//      This means that IsNoon matches anything after 12. Like: (time > 12 || time < 5)
-//      The best counteraction is to validate Noon after all other timeslots
