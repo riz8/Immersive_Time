@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
 using HarmonyLib;
-using NodeCanvas.Tasks.Conditions;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace ImmersiveTime
 {
@@ -14,7 +14,7 @@ namespace ImmersiveTime
     {
         public const string GUID = "rob.one.immersive_time";
         public const string NAME = "ImmersiveTime";
-        public const string VERSION = "0.8";
+        public const string VERSION = "0.9";
 
         public static ImmersiveTime Instance;
 
@@ -70,9 +70,13 @@ namespace ImmersiveTime
                 {6, TranslationLabels.PHASE4 },
         };
 
-        private string  currentTimeText             = "[PLACEHOLDER]";
-        private bool    currentlyIndoor             = false;
-        private float   gameTimeWhenEnterScene      = 0f;
+        private string      currentTimeText             = "[PLACEHOLDER]";
+        private bool        currentlyIndoor             = false;
+        private float       gameTimeWhenEnterScene      = 0f;
+        private GameObject  overlay1;
+        private GameObject  overlay2;
+        private GameObject  overlay3;
+        private GameObject  overlay4;
 
 
         internal void Awake()
@@ -127,11 +131,73 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(RestingMenu __instance)
             {
-                var img = CreateSpriteFromFile("D:/rest_image_orig.png");
-                var tile1 = __instance.transform.FindInAllChildren("Tile1").GetComponent<Image>();
-                var tile2 = __instance.transform.FindInAllChildren("Tile2").GetComponent<Image>();
-                tile1.sprite = img;
-                tile2.sprite = img;
+                var rest1 = CreateSpriteFromFile("D:/rest1.png");
+                var rest2 = CreateSpriteFromFile("D:/rest2.png");
+                var rest3 = CreateSpriteFromFile("D:/rest3.png");
+                var rest4 = CreateSpriteFromFile("D:/rest4.png");
+
+                var tile2 = __instance.transform.FindInAllChildren("Tile2");
+
+                Instance.overlay1 = Instantiate(tile2.gameObject);
+                Instance.overlay2 = Instantiate(tile2.gameObject);
+                Instance.overlay3 = Instantiate(tile2.gameObject);
+                Instance.overlay4 = Instantiate(tile2.gameObject);
+
+                Instance.overlay1.name = "overlay1";
+                Instance.overlay2.name = "overlay2";
+                Instance.overlay3.name = "overlay3";
+                Instance.overlay4.name = "overlay4";
+
+                Instance.overlay1.GetComponent<UnityEngine.UI.Image>().sprite = rest1;
+                Instance.overlay2.GetComponent<UnityEngine.UI.Image>().sprite = rest2;
+                Instance.overlay3.GetComponent<UnityEngine.UI.Image>().sprite = rest3;
+                Instance.overlay4.GetComponent<UnityEngine.UI.Image>().sprite = rest4;
+
+                Instance.overlay1.transform.parent = __instance.transform.FindInAllChildren("Scroll View");
+                Instance.overlay2.transform.parent = __instance.transform.FindInAllChildren("Scroll View");
+                Instance.overlay3.transform.parent = __instance.transform.FindInAllChildren("Scroll View");
+                Instance.overlay4.transform.parent = __instance.transform.FindInAllChildren("Scroll View");
+
+                Instance.overlay1.transform.position = tile2.transform.position;
+                Instance.overlay2.transform.position = tile2.transform.position;
+                Instance.overlay3.transform.position = tile2.transform.position;
+                Instance.overlay4.transform.position = tile2.transform.position;
+
+                Instance.overlay1.transform.localScale = tile2.transform.localScale;
+                Instance.overlay2.transform.localScale = tile2.transform.localScale;
+                Instance.overlay3.transform.localScale = tile2.transform.localScale;
+                Instance.overlay4.transform.localScale = tile2.transform.localScale;
+
+                Instance.overlay1.SetActive(false);
+                Instance.overlay2.SetActive(false);
+                Instance.overlay3.SetActive(false);
+                Instance.overlay4.SetActive(false);
+            }
+        }
+        [HarmonyPatch(typeof(RestingMenu), "Show")]
+        public class RestingMenu_Show
+        {
+            [HarmonyPostfix]
+            public static void Postfix(RestingMenu __instance)
+            {
+                Instance.overlay1.SetActive(false);
+                Instance.overlay2.SetActive(false);
+                Instance.overlay3.SetActive(false);
+                Instance.overlay4.SetActive(false);
+
+                if (Instance.currentlyIndoor)
+                {
+                    var time_inside_cave = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
+
+                    if (time_inside_cave < 2)
+                        Instance.overlay1.SetActive(true);
+                    else if (time_inside_cave < 4)
+                        Instance.overlay2.SetActive(true);
+                    else if (time_inside_cave < 6)
+                        Instance.overlay3.SetActive(true);
+                    else
+                        Instance.overlay4.SetActive(true);
+                }
             }
         }
 
@@ -163,8 +229,8 @@ namespace ImmersiveTime
                 string flavor_text = string.Empty;
                 if (Instance.currentlyIndoor)
                 {
-                    var deltaTime = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
-                    if (!IndoorTime.TryGetValue(deltaTime, out flavor_text))
+                    var time_inside_cave = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
+                    if (!IndoorTime.TryGetValue(time_inside_cave, out flavor_text))
                     {
                         flavor_text = IndoorTime.Last().Value;
                     }
