@@ -263,11 +263,6 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(QuestEntryDisplay __instance, QuestLogEntry _logEntry)
             {
-                __instance.m_currentLogEntry = _logEntry;
-                if (__instance.m_lblText)
-                {
-                    __instance.m_lblText.text = "- " + _logEntry.Text;
-                }
                 if (__instance.m_lblLogDate)
                 {
                     float time = _logEntry.LogTime;
@@ -285,9 +280,7 @@ namespace ImmersiveTime
                         );
 
                         __instance.m_lblLogDate.text = text;
-                        return;
                     }
-                    __instance.m_lblLogDate.text = string.Empty;
                 }
             }
         }
