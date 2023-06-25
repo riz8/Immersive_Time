@@ -71,7 +71,7 @@ namespace ImmersiveTime
         };
 
         private string      currentTimeText             = "[PLACEHOLDER]";
-        private bool        currentlyIndoor             = false;
+        private bool        currentlyOutdoor            = true;
         private float       gameTimeWhenEnterScene      = 0f;
         private GameObject  overlay1;
         private GameObject  overlay2;
@@ -97,17 +97,17 @@ namespace ImmersiveTime
         public class CaveEntryData : SideLoader.SaveData.PlayerSaveExtension
         {
             public float    gameTimeWhenEnterScene;
-            public bool     currentlyIndoor;
+            public bool     currentlyOutdoor;
             public override void Save(Character character, bool isWorldHost)
             {
                 gameTimeWhenEnterScene  = Instance.gameTimeWhenEnterScene;
-                currentlyIndoor         = Instance.currentlyIndoor;
+                currentlyOutdoor        = Instance.currentlyOutdoor;
             }
 
             public override void ApplyLoadedSave(Character character, bool isWorldHost)
             {
                 Instance.gameTimeWhenEnterScene = gameTimeWhenEnterScene;
-                Instance.currentlyIndoor = currentlyIndoor;
+                Instance.currentlyOutdoor = currentlyOutdoor;
             }
         }
 
@@ -185,19 +185,19 @@ namespace ImmersiveTime
                 Instance.overlay3.SetActive(false);
                 Instance.overlay4.SetActive(false);
 
-                if (Instance.currentlyIndoor)
-                {
-                    var time_inside_cave = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
+                if (Instance.currentlyOutdoor)
+                    return;
 
-                    if (time_inside_cave < 2)
-                        Instance.overlay1.SetActive(true);
-                    else if (time_inside_cave < 4)
-                        Instance.overlay2.SetActive(true);
-                    else if (time_inside_cave < 6)
-                        Instance.overlay3.SetActive(true);
-                    else
-                        Instance.overlay4.SetActive(true);
-                }
+                var time_inside_cave = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
+
+                if (time_inside_cave < 2)
+                    Instance.overlay1.SetActive(true);
+                else if (time_inside_cave < 4)
+                    Instance.overlay2.SetActive(true);
+                else if (time_inside_cave < 6)
+                    Instance.overlay3.SetActive(true);
+                else
+                    Instance.overlay4.SetActive(true);
             }
         }
 
@@ -210,13 +210,13 @@ namespace ImmersiveTime
                 MapDisplay.Instance.FetchMap(); // We need to update the map for m_currentAreaHasMap to be set
                 bool enteringIndoor = !MapDisplay.Instance.m_currentAreaHasMap;
 
-                if (!Instance.currentlyIndoor && enteringIndoor) // Moving inside
+                if (Instance.currentlyOutdoor && enteringIndoor) // Moving inside
                 {
                     Instance.gameTimeWhenEnterScene = EnvironmentConditions.GameTimeF;
                     Instance.Logger.LogDebug("Entering inside. New timer " + Instance.gameTimeWhenEnterScene);
                 }
 
-                Instance.currentlyIndoor = enteringIndoor;
+                Instance.currentlyOutdoor = !enteringIndoor;
             }
         }
 
@@ -227,18 +227,19 @@ namespace ImmersiveTime
             public static void Postfix(MapDisplay __instance)
             {
                 string flavor_text = string.Empty;
-                if (Instance.currentlyIndoor)
+                if (Instance.currentlyOutdoor)
+                {
+                    var game_hour = (int)TOD_Sky.Instance.Cycle.Hour;
+                    flavor_text = OutdoorTime[game_hour];
+                }
+                else
                 {
                     var time_inside_cave = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
                     if (!IndoorTime.TryGetValue(time_inside_cave, out flavor_text))
                     {
                         flavor_text = IndoorTime.Last().Value;
                     }
-                }
-                else
-                {
-                    var game_hour = (int)TOD_Sky.Instance.Cycle.Hour;
-                    flavor_text = OutdoorTime[game_hour];
+
                 }
 
                 Instance.currentTimeText = flavor_text;
