@@ -78,6 +78,8 @@ namespace ImmersiveTime
         private GameObject  overlay2;
         private GameObject  overlay3;
         private GameObject  overlay4;
+        private GameObject  restMenuScale;
+        private GameObject  restMenuIndicators;
 
 
         internal void Awake()
@@ -131,6 +133,9 @@ namespace ImmersiveTime
             [HarmonyPostfix]
             public static void Postfix(RestingMenu __instance)
             {
+                Instance.restMenuScale = __instance.transform.FindInAllChildren("Scale").gameObject;
+                Instance.restMenuIndicators = __instance.transform.FindInAllChildren("Indicators").gameObject;
+
                 var rest1 = CreateSpriteFromFile("D:/rest1.png");
                 var rest2 = CreateSpriteFromFile("D:/rest2.png");
                 var rest3 = CreateSpriteFromFile("D:/rest3.png");
@@ -184,9 +189,14 @@ namespace ImmersiveTime
                 Instance.overlay2.SetActive(false);
                 Instance.overlay3.SetActive(false);
                 Instance.overlay4.SetActive(false);
+                Instance.restMenuScale.SetActive(true);
+                Instance.restMenuIndicators.SetActive(true);
 
                 if (Instance.currentlyOutdoor)
                     return;
+
+                Instance.restMenuScale.SetActive(false);
+                Instance.restMenuIndicators.SetActive(false);
 
                 var time_inside_cave = (int)(EnvironmentConditions.GameTimeF - Instance.gameTimeWhenEnterScene);
 
