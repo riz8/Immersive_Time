@@ -6,8 +6,6 @@ With this mod, you will never know "exactly" what time it is. You will see Morni
 Questlog will also show flavor type of text like: "Day 4 Morning".
 When you are inside (anything without a map). You will slowly lose track of time. The sundial will become less readable the longer you are inside.
 
-I think many of never realise how much we look at the time when we play until it is not as clear.
-
 This goes very well with a mod like True Hardcore where gates are locked during night.
 ```
 Note: Timeslots like morning are already translated in the game. But the flavor text inside is not.
@@ -25,5 +23,4 @@ Note: Timeslots like morning are already translated in the game. But the flavor 
 * Support for ConfigurationManager to toggle indoors behaviour.
 ---
 #### PLANNED
-* Translation of cave time
-* Add time based situations, like locked gate, shop opening hours etc. _May be a mod in its own_
+* Translation of flavor text for indoor time

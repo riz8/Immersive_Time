@@ -136,10 +136,12 @@ namespace ImmersiveTime
                 Instance.restMenuScale = __instance.transform.FindInAllChildren("Scale").gameObject;
                 Instance.restMenuIndicators = __instance.transform.FindInAllChildren("Indicators").gameObject;
 
-                var rest1 = CreateSpriteFromFile("D:/rest1.png");
-                var rest2 = CreateSpriteFromFile("D:/rest2.png");
-                var rest3 = CreateSpriteFromFile("D:/rest3.png");
-                var rest4 = CreateSpriteFromFile("D:/rest4.png");
+                string plugin_path = Instance.Info.Location.Replace("ImmersiveTime.dll", "") + "Sprites/";
+
+                var rest1 = CreateSpriteFromFile(plugin_path +"rest1.png");
+                var rest2 = CreateSpriteFromFile(plugin_path + "rest2.png");
+                var rest3 = CreateSpriteFromFile(plugin_path + "rest3.png");
+                var rest4 = CreateSpriteFromFile(plugin_path + "rest4.png");
 
                 var tile2 = __instance.transform.FindInAllChildren("Tile2");
 
