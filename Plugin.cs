@@ -4,8 +4,7 @@ using System.Linq;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.UIElements;
+using BepInEx.Configuration;
 
 namespace ImmersiveTime
 {
@@ -15,6 +14,8 @@ namespace ImmersiveTime
         public const string GUID = "rob.one.immersive_time";
         public const string NAME = "ImmersiveTime";
         public const string VERSION = "0.9";
+
+        public static ConfigEntry<bool> configAlwaysOutdoorEnabled;
 
         public static ImmersiveTime Instance;
 
@@ -85,13 +86,11 @@ namespace ImmersiveTime
 
             var harmony = new Harmony(GUID);
             harmony.PatchAll();
-
-            //Instance.Logger.LogDebug("Awake");
+            configAlwaysOutdoorEnabled = Config.Bind("Immersive Indoor", "Indoor/Outdoor works the same", false, "With this disabled: The longer you are in a cave the less knowledge about time you will have. Sundial, flavor text and time indicators are all changed.");
         }
 
         internal void Update()
         {
-            //Instance.Logger.LogDebug("Update");
         }
 
         public class CaveEntryData : SideLoader.SaveData.PlayerSaveExtension
@@ -107,7 +106,8 @@ namespace ImmersiveTime
             public override void ApplyLoadedSave(Character character, bool isWorldHost)
             {
                 Instance.gameTimeWhenEnterScene = gameTimeWhenEnterScene;
-                Instance.currentlyOutdoor = currentlyOutdoor;
+                Instance.currentlyOutdoor = configAlwaysOutdoorEnabled.Value || currentlyOutdoor;
+
             }
         }
 
@@ -208,15 +208,13 @@ namespace ImmersiveTime
             public static void Postfix(SceneInteractionManager __instance)
             {
                 MapDisplay.Instance.FetchMap(); // We need to update the map for m_currentAreaHasMap to be set
-                bool enteringIndoor = !MapDisplay.Instance.m_currentAreaHasMap;
-
-                if (Instance.currentlyOutdoor && enteringIndoor) // Moving inside
+                bool enteringOutdoor = configAlwaysOutdoorEnabled.Value || MapDisplay.Instance.m_currentAreaHasMap;
+                if (Instance.currentlyOutdoor && !enteringOutdoor) // Moving inside
                 {
                     Instance.gameTimeWhenEnterScene = EnvironmentConditions.GameTimeF;
-                    Instance.Logger.LogDebug("Entering inside. New timer " + Instance.gameTimeWhenEnterScene);
                 }
 
-                Instance.currentlyOutdoor = !enteringIndoor;
+                Instance.currentlyOutdoor = enteringOutdoor;
             }
         }
 
