@@ -1,6 +1,6 @@
 {
     "name": "ImmersiveTime",
-    "version_number": "0.9.0",
+    "version_number": "0.9.1",
     "website_url": "https://github.com/riz8/Immersive_Time",
     "description": "Changes how time in the game is preceived with relative timeslots like Morning, Evening",
     "dependencies": [
