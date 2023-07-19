@@ -8,56 +8,66 @@ using BepInEx.Configuration;
 
 namespace ImmersiveTime
 {
+    [BepInDependency("com.bepis.bepinex.configurationmanager", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("io.mefino.configurationmanager", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin(GUID, NAME, VERSION)]
     public class ImmersiveTime : BaseUnityPlugin
     {
         public const string GUID = "rob.one.immersive_time";
         public const string NAME = "ImmersiveTime";
-        public const string VERSION = "0.9";
+        public const string VERSION = "0.9.1";
 
-        public static ConfigEntry<bool> configAlwaysOutdoorEnabled;
+        public static ConfigEntry<bool> _alwaysOutdoorEnabled;
 
         public static ImmersiveTime Instance;
-
+        #region STATIC
         private readonly struct TranslationLabels
         {
-            public static readonly string MORNING = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Morning.ToString());
-            public static readonly string NOON = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Noon.ToString());
-            public static readonly string AFTERNOON = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.AfterNoon.ToString());
-            public static readonly string EVENING = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Evening.ToString());
-            public static readonly string NIGHT = LocalizationManager.Instance.GetLoc(EnvironmentConditions.TimeOfDayTimeSlot.Night.ToString());
-            public static readonly string PHASE1 = "Less than 2 hours since enter";
-            public static readonly string PHASE2 = "Less than 4 hours since enter";
-            public static readonly string PHASE3 = "Less than 6 hours since enter";
-            public static readonly string PHASE4 = "You have lost track of the time";
+            public static readonly string EARLY_MORNING     = "Early Morning";
+            public static readonly string MORNING           = "Morning";
+            public static readonly string LATE_MORNING      = "Late Morning";
+            public static readonly string NOON              = "Noon";
+            public static readonly string EARLY_AFTERNOON   = "Early Afternoon";
+            public static readonly string AFTERNOON         = "Afternoon";
+            public static readonly string LATE_AFTERNOON    = "Late Afternoon";
+            public static readonly string EARLY_EVENING     = "Early Evening";
+            public static readonly string EVENING           = "Evening";
+            public static readonly string LATE_EVENING      = "Late Evening";
+            public static readonly string EARLY_NIGHT       = "Early Night";
+            public static readonly string NIGHT             = "Night";
+            public static readonly string LATE_NIGHT        = "Late Night";
+            public static readonly string PHASE1            = "Less than 2 hours since enter";
+            public static readonly string PHASE2            = "Less than 4 hours since enter";
+            public static readonly string PHASE3            = "Less than 6 hours since enter";
+            public static readonly string PHASE4            = "You have lost track of the time";
         }
         static readonly Dictionary<int, string> OutdoorTime = 
             new Dictionary<int, string>
         {
-                {0, TranslationLabels.NIGHT },
+                {0, TranslationLabels.EARLY_NIGHT },
                 {1, TranslationLabels.NIGHT },
                 {2, TranslationLabels.NIGHT },
                 {3, TranslationLabels.NIGHT },
-                {4, TranslationLabels.NIGHT },
-                {5, TranslationLabels.NIGHT },
-                {6, TranslationLabels.MORNING },
-                {7, TranslationLabels.MORNING },
+                {4, TranslationLabels.LATE_NIGHT },
+                {5, TranslationLabels.LATE_NIGHT },
+                {6, TranslationLabels.EARLY_MORNING },
+                {7, TranslationLabels.EARLY_MORNING },
                 {8, TranslationLabels.MORNING },
                 {9, TranslationLabels.MORNING },
-                {10, TranslationLabels.MORNING },
-                {11, TranslationLabels.MORNING },
+                {10, TranslationLabels.LATE_MORNING },
+                {11, TranslationLabels.LATE_MORNING },
                 {12, TranslationLabels.NOON },
-                {13, TranslationLabels.AFTERNOON },
-                {14, TranslationLabels.AFTERNOON },
+                {13, TranslationLabels.EARLY_AFTERNOON },
+                {14, TranslationLabels.EARLY_AFTERNOON },
                 {15, TranslationLabels.AFTERNOON },
                 {16, TranslationLabels.AFTERNOON },
-                {17, TranslationLabels.AFTERNOON },
-                {18, TranslationLabels.AFTERNOON },
-                {19, TranslationLabels.EVENING },
+                {17, TranslationLabels.LATE_AFTERNOON },
+                {18, TranslationLabels.LATE_AFTERNOON },
+                {19, TranslationLabels.EARLY_EVENING },
                 {20, TranslationLabels.EVENING },
                 {21, TranslationLabels.EVENING },
-                {22, TranslationLabels.EVENING },
-                {23, TranslationLabels.NIGHT }
+                {22, TranslationLabels.LATE_EVENING },
+                {23, TranslationLabels.EARLY_NIGHT }
         };
         static readonly Dictionary<int, string> IndoorTime =
             new Dictionary<int, string>
@@ -70,6 +80,7 @@ namespace ImmersiveTime
                 {5, TranslationLabels.PHASE3 },
                 {6, TranslationLabels.PHASE4 },
         };
+        #endregion
 
         private string      currentTimeText             = "[PLACEHOLDER]";
         private bool        currentlyOutdoor            = true;
@@ -88,7 +99,7 @@ namespace ImmersiveTime
 
             var harmony = new Harmony(GUID);
             harmony.PatchAll();
-            configAlwaysOutdoorEnabled = Config.Bind("Immersive Indoor", "Indoor/Outdoor works the same", false, "With this disabled: The longer you are in a cave the less knowledge about time you will have. Sundial, flavor text and time indicators are all changed.");
+            _alwaysOutdoorEnabled = Config.Bind("Immersive Indoor", "Disable to allow special indoor time", false, "Disabled: The longer you are in a cave the less knowledge about time you will have. Sundial, flavor text and time indicators are all changed.");
         }
 
         internal void Update()
@@ -108,7 +119,7 @@ namespace ImmersiveTime
             public override void ApplyLoadedSave(Character character, bool isWorldHost)
             {
                 Instance.gameTimeWhenEnterScene = gameTimeWhenEnterScene;
-                Instance.currentlyOutdoor = configAlwaysOutdoorEnabled.Value || currentlyOutdoor;
+                Instance.currentlyOutdoor = _alwaysOutdoorEnabled.Value || currentlyOutdoor;
 
             }
         }
@@ -220,7 +231,7 @@ namespace ImmersiveTime
             public static void Postfix(SceneInteractionManager __instance)
             {
                 MapDisplay.Instance.FetchMap(); // We need to update the map for m_currentAreaHasMap to be set
-                bool enteringOutdoor = configAlwaysOutdoorEnabled.Value || MapDisplay.Instance.m_currentAreaHasMap;
+                bool enteringOutdoor = _alwaysOutdoorEnabled.Value || MapDisplay.Instance.m_currentAreaHasMap;
                 if (Instance.currentlyOutdoor && !enteringOutdoor) // Moving inside
                 {
                     Instance.gameTimeWhenEnterScene = EnvironmentConditions.GameTimeF;
