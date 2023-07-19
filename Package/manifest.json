@@ -1,0 +1,10 @@
+{
+    "name": "ImmersiveTime",
+    "version_number": "0.9.0",
+    "website_url": "https://github.com/riz8/Immersive_Time",
+    "description": "Changes how time in the game is preceived with relative timeslots like Morning, Evening",
+    "dependencies": [
+		  "sinai-dev-SideLoader-3.7.14",
+      "BepInEx-BepInExPack_Outward-5.4.19"
+    ]
+}
